@@ -13,6 +13,9 @@ int to_quit = 0;
 int show_in_mbit = 0;
 int warn_low_mark = 0, warn_high_mark = 1;
 
+// return avrage data rate in number of bytes per second.
+// return zero if duration_sec has not passed since last calculation.
+// contents of pt1 and pt2 will be modified
 unsigned long calculate_byte_rate(struct timeval *pt1, struct timeval *pt2, 
                     unsigned long *temp_size, int duration_sec)
 {
@@ -79,10 +82,11 @@ int main(int argc, char **argv)
         switch(c) {
         case '?':
         case 'h':
-            fprintf(stderr, "%s [-b buffer_size] [-m] [-w low:high] \n", argv[0]);
+            fprintf(stderr, "%s [-b buffer_size] [-m] [-w low:high]\n", argv[0]);
             fprintf(stderr, "buffer size default %d bytes\n", buffer_size);
             fprintf(stderr, "-m show in mega-bits\n");
             fprintf(stderr, "-w post warning if stream bit rate is out of range.\n");
+            fprintf(stderr, "   format is \"time-in-millisecond bytes\" perline\n");
             fprintf(stderr, "\nThis tool calculates bytes flow from stdin and copy data to stdout\n\n");
             exit(1);
             break;
@@ -148,6 +152,7 @@ int main(int argc, char **argv)
         temp_size += (unsigned long)sizer;
 
         average_bytes = calculate_byte_rate(&t1, &t2, &temp_size, 2);
+
         if(0==average_bytes) { // not time to calculate yet
             continue;
         }
@@ -235,5 +240,7 @@ int main(int argc, char **argv)
 	} // end of while loop
 
 	fprintf(stderr, "Total %ld bytes read\n", total_size);
+    fclose(inf);
+    fclose(outf);
 	return 0;
 }
