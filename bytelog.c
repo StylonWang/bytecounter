@@ -71,6 +71,7 @@ int main(int argc, char **argv)
                             optarg, strerror(errno));
                     exit(1);
                 }
+                break;
             }
 
         }
