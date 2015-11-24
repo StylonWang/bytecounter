@@ -37,12 +37,6 @@ unsigned long calculate_byte_rate(struct timeval *pt1, struct timeval *pt2,
         mili_sec += (pt2->tv_usec+1000000-pt1->tv_usec)/1000;
     }
 
-#if 0
-    fprintf(stderr, "%ld.%ld ~ %ld.%ld, %ld, %ld\n",
-            (unsigned long)pt1->tv_sec, (unsigned long)pt1->tv_usec,
-            (unsigned long)pt2->tv_sec, (unsigned long)pt2->tv_usec,
-            mili_sec, *temp_size);
-#endif
     if(!mili_sec) {
         fprintf(stderr, "internal exception!\n");
         goto out;
@@ -181,60 +175,6 @@ int main(int argc, char **argv)
                     break; //quit
                 }
         }
-#if 0
-        // calculate byte flow
-        gettimeofday(&t2, NULL);
-        if(t2.tv_sec >= t1.tv_sec+2) {
-            unsigned long mili_sec = (t2.tv_sec-t1.tv_sec)*1000;            
-
-            if(t2.tv_usec>=t1.tv_usec) {
-                mili_sec += (t2.tv_usec-t1.tv_usec)/1000;
-            }
-            else {
-                mili_sec -= 1000;
-                mili_sec += (t2.tv_usec+1000000-t1.tv_usec)/1000;
-            }
-
-#if 0
-            fprintf(stderr, "%ld.%ld ~ %ld.%ld, %ld, %ld\n",
-                    (unsigned long)t1.tv_sec, (unsigned long)t1.tv_usec,
-                    (unsigned long)t2.tv_sec, (unsigned long)t2.tv_usec,
-                    mili_sec, temp_size);
-#endif
-            if(!mili_sec) {
-                fprintf(stderr, "internal exception!\n");
-                continue;
-            }
-
-            if( show_in_mbit ) {
-                average_bytes = (temp_size*1000) / mili_sec;
-                double mbits = ((double)average_bytes*8)/1024/1024;
-                fprintf(stderr, "Avg. %.2f Mbits/sec\n", mbits);
-                if(warn_low_mark && warn_high_mark && 
-                   (mbits<warn_low_mark || mbits>warn_high_mark)
-                  ) {
-                    fprintf(stderr, "WARNING: bit rate %.2f Mbits out of range\n",
-                            mbits);
-                    break; //quit
-                }
-            }
-            else {
-                average_bytes = (temp_size*1000) / mili_sec;
-                fprintf(stderr, "Avg. %ld bytes/sec\n", average_bytes);
-                if(warn_low_mark && warn_high_mark && 
-                   (average_bytes<warn_low_mark || average_bytes>warn_high_mark)
-                  ) {
-                    fprintf(stderr, "WARNING: bit rate %ld MBytes out of range\n",
-                            average_bytes);
-                    break; //quit
-                }
-            }
-
-            // reset
-            temp_size = 0;
-            t1 = t2;
-        }
-#endif
         
         sizew = fwrite(buf, 1, sizer, outf);
 	} // end of while loop
