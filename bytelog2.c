@@ -8,6 +8,7 @@
 #include <sys/time.h>
 #include <getopt.h>
 #include <sys/select.h>
+#include <math.h>
 
 struct log_sample {
     unsigned long time_ms;
@@ -55,28 +56,83 @@ static int analyze_sample_and_report(FILE* logf)
     unsigned long count = 0;
     unsigned long bytes = 0;
     unsigned long time_unit = 1;
+    struct log_sample *head = g_head;
+    
+    struct sample_t {
+        unsigned long time;
+        unsigned long bytes;
+        struct sample_t *next;
+    };
+    struct sample_t *shead=NULL, *stail=NULL, *shead_temp;
+    unsigned long sample_count = 0;
+    unsigned long sample_sum = 0;
+    unsigned long sample_mean;
+    unsigned long sample_square_diff=0;
+    unsigned long standard_deviation=0;
+
     fprintf(stderr, "Report granularity: %d milli seconds\n", g_granularity); 
 
-    while(g_head) {
-        //fprintf(logf, "%ld %ld\n", g_head->time_ms, g_head->bytes);
+    while(head) {
+        //fprintf(logf, "%ld %ld\n", head->time_ms, head->bytes);
         //fflush(logf);
         
-        bytes += g_head->bytes;
+        bytes += head->bytes;
         count++;
 
-        if(time_unit*g_granularity <= g_head->time_ms) {
+        if(time_unit*g_granularity <= head->time_ms) {
+            struct sample_t *newsample = malloc(sizeof(struct sample_t));
             
             fprintf(logf, "%ld %ld\n", time_unit*g_granularity, bytes);
             fflush(logf);
+
+            newsample->time = time_unit*g_granularity;
+            newsample->bytes = bytes;
+            newsample->next = NULL;
+
+            if(NULL==shead || NULL==stail) { // empty list
+                shead = stail = newsample;
+            }
+            else {
+                stail->next = newsample;
+                stail = newsample;
+            }
 
             bytes = 0;
             time_unit++;
         }
 
-        g_head = g_head->next;
+        head = head->next;
     }
 
     fprintf(stderr, "Total %ld samples\n", count);
+
+    // calculate standard deviation of samples
+    
+    // work out the mean
+    shead_temp = shead;
+    while(shead_temp) {
+        sample_count++; 
+        sample_sum += shead_temp->bytes; 
+
+        shead_temp = shead_temp->next;
+    }
+    sample_mean = sample_sum / sample_count;
+
+    // work out the standard deviation
+    shead_temp = shead;
+    sample_count=0;
+    while(shead_temp) {
+        long diff;
+
+        sample_count++;
+        diff = (long)shead_temp->bytes - (long)sample_mean; // diff to the mean
+        sample_square_diff += (diff * diff); // squared difference
+
+        shead_temp = shead_temp->next;
+    }
+    standard_deviation = sqrt(sample_square_diff / sample_count); 
+    fprintf(stderr, "Standard deviation(count=%ld , mean=%ld): %ld\n", sample_count, sample_mean, standard_deviation);
+
     return 0;
 }
 
@@ -159,7 +215,7 @@ int main(int argc, char **argv)
     }
 
     fprintf(stderr, "Use buffer %d bytes\n", g_buffer_size);
-    fprintf(stderr, "Max run time is %d milli seconds\n", g_run_time);
+    fprintf(stderr, "Run for %d seconds\n", g_run_time);
     
     inf = open("/dev/stdin", O_RDONLY);
     if(-1==inf) {
@@ -217,7 +273,7 @@ int main(int argc, char **argv)
 
         //time_diff_millisec = get_time_interval_in_ms(&t1, &t2);
 
-        fprintf(stderr, "dbg: %ld %ld\n", time_diff_from_start, sizer);
+        //fprintf(stderr, "dbg: %ld %ld\n", time_diff_from_start, sizer);
 
         if(g_run_time!=0 && g_run_time*1000 < time_diff_from_start) break;
 
