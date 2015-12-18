@@ -10,6 +10,8 @@
 #include <sys/select.h>
 #include <math.h>
 
+#define MODULE "[bytelog2]"
+
 struct log_sample {
     unsigned long time_ms;
     unsigned long bytes;
@@ -70,7 +72,7 @@ static int analyze_sample_and_report(FILE* logf)
     unsigned long sample_square_diff=0;
     unsigned long standard_deviation=0;
 
-    fprintf(stderr, "Report granularity: %d milli seconds\n", g_granularity); 
+    fprintf(stderr, "%s Report granularity: %d milli seconds\n", MODULE, g_granularity); 
 
     while(head) {
         //fprintf(logf, "%ld %ld\n", head->time_ms, head->bytes);
@@ -104,7 +106,7 @@ static int analyze_sample_and_report(FILE* logf)
         head = head->next;
     }
 
-    fprintf(stderr, "Total %ld samples\n", count);
+    fprintf(stderr, "%s Total report %ld samples\n", MODULE, count);
 
     // calculate standard deviation of samples
     
@@ -131,7 +133,9 @@ static int analyze_sample_and_report(FILE* logf)
         shead_temp = shead_temp->next;
     }
     standard_deviation = sqrt(sample_square_diff / sample_count); 
-    fprintf(stderr, "Standard deviation(count=%ld , mean=%ld): %ld\n", sample_count, sample_mean, standard_deviation);
+    fprintf(stderr, "%s Standard deviation(count=%ld , mean=%ld): %ld\n", 
+            MODULE,
+            sample_count, sample_mean, standard_deviation);
 
     return 0;
 }
@@ -157,7 +161,7 @@ static unsigned long get_time_interval_in_ms(const struct timeval *pt1,
 static void signal_handler(int signo)
 {
     g_to_quit = 1;
-    fprintf(stderr, "Signal %d caught\n", signo);
+    fprintf(stderr, "%s Signal %d caught\n", MODULE, signo);
 }
 
 
@@ -199,8 +203,8 @@ int main(int argc, char **argv)
             {
                 logf = fopen(optarg, "w+");
                 if(NULL==logf) {
-                    fprintf(stderr, "cannot open '%s' for writing: %s\n",
-                            optarg, strerror(errno));
+                    fprintf(stderr, "%s cannot open '%s' for writing: %s\n",
+                            MODULE, optarg, strerror(errno));
                     exit(1);
                 }
                 break;
@@ -210,16 +214,16 @@ int main(int argc, char **argv)
     }
 
     if(NULL==logf) {
-        fprintf(stderr, "Please specify path to log file via \"-s\" option.\n");
+        fprintf(stderr, "%s Please specify path to log file via \"-s\" option.\n", MODULE);
         exit(1);
     }
 
-    fprintf(stderr, "Use buffer %d bytes\n", g_buffer_size);
-    fprintf(stderr, "Run for %d seconds\n", g_run_time);
+    fprintf(stderr, "%s Use buffer %d bytes\n", MODULE, g_buffer_size);
+    fprintf(stderr, "%s Run for %d seconds\n", MODULE, g_run_time);
     
     inf = open("/dev/stdin", O_RDONLY);
     if(-1==inf) {
-        fprintf(stderr, "cannot open /dev/stdin for reading\n");
+        fprintf(stderr, "%s cannot open /dev/stdin for reading\n", MODULE);
         exit(1);
     }
 
@@ -279,7 +283,7 @@ int main(int argc, char **argv)
 
 	} // end of while loop
 
-	fprintf(stderr, "Total %ld bytes read\n", total_size);
+	fprintf(stderr, "%s Total %ld bytes read\n", MODULE, total_size);
     close(inf);
     close(outf);
 

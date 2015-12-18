@@ -7,6 +7,8 @@
 #include <unistd.h>
 #include <stdio.h>
 
+#define MODULE "[generator]"
+
 // random data generator
 // generate random number of bytes and send to stdout between random number 
 // of interval
@@ -32,12 +34,12 @@ static unsigned long get_time_interval_in_ms(const struct timeval *pt1,
 int main(int argc, char **argv)
 {
     struct timeval t1, t2;
-    char buf[50*1024];
+    char buf[100*1024];
     FILE *logf = NULL;
 
     logf = fopen("generator.log", "w+");
     if(NULL==logf) {
-        fprintf(stderr, "Cannot open log file\n");
+        fprintf(stderr, "%s Cannot open log file\n", MODULE);
         exit(1);
     }
 
@@ -45,7 +47,7 @@ int main(int argc, char **argv)
 
     while(1) {
         unsigned long buf_size = rand() % sizeof(buf);
-        int sleep_ms = 200; //rand() % 50;
+        int sleep_ms = 100; //rand() % 50;
         unsigned long diff_ms;
 
         write(1, buf, buf_size);
@@ -57,7 +59,7 @@ int main(int argc, char **argv)
                 buf_size);
         fflush(logf);
 
-        if(diff_ms >= 20*1000) break;
+        //if(diff_ms >= 20*1000) break;
     }
 
     fclose(logf);
