@@ -1,5 +1,5 @@
 
-default:: bytecount bytelog bytelog2 test smoother
+default:: bytecount bytelog bytelog2 test smoother smoother2
 
 clean::
 	rm -f bytecount bytelog
@@ -20,4 +20,6 @@ bytelog2: bytelog2.c
 smoother: smoother.c
 	gcc -Wall -g $? -o $@
 
+smoother2: smoother2.c
+	gcc -Wall -g $? -o $@
 
