@@ -11,6 +11,15 @@
 
 #define MODULE "[smoother2]"
 
+static void myusleep(long usec)
+{
+    struct timeval tv;
+    tv.tv_sec = 0;
+    tv.tv_usec = usec;
+
+    select(0, NULL, NULL, NULL, &tv);
+}
+
 static unsigned long get_time_interval_in_ms(const struct timeval *pt1,
                         const struct timeval *pt2)
 {
@@ -197,7 +206,7 @@ void *buffer_thread_routine(void *data)
 
         // keep our pace: write chunk bytes in each interval
 
-        usleep(g_write_interval_ms * 1000); 
+        myusleep(g_write_interval_ms * 1000); 
         g_write_clock++;
 
         // search for buffer nodes to satisfy this chunk write
@@ -348,7 +357,7 @@ void smooth_write_init(void)
     struct timeval t1, t2;
 
     gettimeofday(&t1, NULL);
-    usleep(g_initial_interval_ms*1000);
+    myusleep(g_initial_interval_ms*1000);
     gettimeofday(&t2, NULL);
 
     long diff_ms = get_time_interval_in_ms(&t1, &t2);
