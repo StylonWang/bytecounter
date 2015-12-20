@@ -123,17 +123,21 @@ static int analyze_sample_and_report(FILE* logf)
 
     // work out the standard deviation
     shead_temp = shead;
-    sample_count=0;
     while(shead_temp) {
         long diff;
+        unsigned long old_sqd = sample_square_diff;
 
-        sample_count++;
         diff = (long)shead_temp->bytes - (long)sample_mean; // diff to the mean
-        sample_square_diff += (diff * diff); // squared difference
+        sample_square_diff += ((diff * diff)/sample_count); // squared difference
+        // divide by sample count here to avoid overlow long integer
+        if(sample_square_diff < old_sqd) {
+            fprintf(stderr, "%s long overflow!\n", MODULE);
+            exit(1);
+        }
 
         shead_temp = shead_temp->next;
     }
-    standard_deviation = sqrt(sample_square_diff / sample_count); 
+    standard_deviation = sqrt(sample_square_diff); 
     fprintf(stderr, "%s Standard deviation(count=%ld , mean=%ld): %ld\n", 
             MODULE,
             sample_count, sample_mean, standard_deviation);
