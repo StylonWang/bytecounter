@@ -8,6 +8,7 @@
 #include <sys/time.h>
 #include <assert.h>
 #include <pthread.h>
+#include <signal.h>
 
 #define MODULE "[smoother3]"
 

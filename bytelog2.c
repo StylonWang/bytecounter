@@ -9,6 +9,7 @@
 #include <getopt.h>
 #include <sys/select.h>
 #include <math.h>
+#include <signal.h>
 
 #define MODULE "[bytelog2]"
 

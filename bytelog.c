@@ -7,6 +7,7 @@
 #include <string.h>
 #include <sys/time.h>
 #include <getopt.h>
+#include <signal.h>
 
 int buffer_size = 4*1024;
 int to_quit = 0;

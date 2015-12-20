@@ -8,6 +8,7 @@
 #include <sys/time.h>
 #include <assert.h>
 #include <pthread.h>
+#include <signal.h>
 
 #define MODULE "[smoother]"
 
@@ -46,16 +47,17 @@ static struct buffer_node *g_queue_head=NULL, *g_queue_tail=NULL;
 
 // When buffer level is above g_buffer_max_level, do whatever we can to reduce 
 // to "what"(?) level.
-static const unsigned long g_buffer_max_level = 50 *1024; 
+#define BUFFER_MAX (50*1024)
+static const unsigned long g_buffer_max_level = BUFFER_MAX; 
 // Until buffer level reaches g_buffer_start_level, we do not write out
 // data, instead we do: 1. measure incoming rate. 2. push data into queue
-static unsigned long g_buffer_start_level = g_buffer_max_level/2;
+static unsigned long g_buffer_start_level = BUFFER_MAX/2;
 // When buffer level reaches beyond g_buffer_threshold_high, we increase
 // consumption speed.
-static unsigned long g_buffer_threshold_high = g_buffer_max_level *8 /10; // 80%
+static unsigned long g_buffer_threshold_high = BUFFER_MAX *8 /10; // 80%
 // When buffer level drops below g_buffer_threshold_low, we decrease
 // consumption speed.
-static unsigned long g_buffer_threshold_low = g_buffer_max_level *3 /10; // 30%
+static unsigned long g_buffer_threshold_low = BUFFER_MAX *3 /10; // 30%
 // current buffer level (water level)
 static unsigned long g_buffer_curr_level = 0;
 // the constant consumption we try to achieve
@@ -156,7 +158,7 @@ void *buffer_thread_routine(void *data)
 {
     unsigned long last_rate_adjust_clock = 0; 
     unsigned long total_bytes = 0;
-    struct timeval t1, t2;
+    struct timeval t1; //, t2;
 
     fprintf(stderr, "%s buffer thread started\n", MODULE);
     gettimeofday(&t1, NULL);

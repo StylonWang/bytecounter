@@ -15,14 +15,14 @@ bytelog: bytelog.c
 	gcc -Wall -g $? -o $@
 
 bytelog2: bytelog2.c
-	gcc -Wall -g $? -o $@
+	gcc -Wall -g $? -lm -o $@
 
 smoother: smoother.c
-	gcc -Wall -g $? -o $@
+	gcc -Wall -g $? -lpthread -o $@
 
 smoother2: smoother2.c
-	gcc -Wall -g $? -o $@
+	gcc -Wall -g $? -lpthread -o $@
 
 smoother3: smoother3.c
-	gcc -Wall -g $? -o $@
+	gcc -Wall -g $? -lpthread -o $@
 
