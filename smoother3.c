@@ -13,7 +13,6 @@
 // ==========================================================================
 // Start of smooth buffering
 
-// TODO: larger buffer to hold many read/write chunks
 #define BUFFER_SIZE (40*1024)
 struct buffer_node {
     char buffer[BUFFER_SIZE];
@@ -65,6 +64,16 @@ typedef struct smooth_t {
 } smooth_t;
 
 #define MODULE "[smoother3]"
+
+// turn on/off debug message
+#if 1
+#define dbg_print(fmt, args...)  \
+        do {\
+            fprintf(stderr, "%s " fmt, MODULE, ##args);\
+        } while(0)
+#else
+    #define dbg_print(fmt, args...) do {} while(0)
+#endif
 
 static inline void smooth_usleep(long usec)
 {
@@ -147,7 +156,7 @@ static void push_to_queue(smooth_t *t, int fd, const void *buf, size_t nbyte)
     t->buffer_curr_level += nbyte;
     t->incoming_bytes_1 += nbyte;
 
-    //fprintf(stderr, "%s - push to Q %ld\n", MODULE, nbyte);
+    //dbg_print("%s - push to Q %ld\n", nbyte);
     
     // calculate incoming byte rate every 2 seconds
     if(t->incoming_t1.tv_sec==0 && t->incoming_t1.tv_usec==0) {
@@ -159,7 +168,7 @@ static void push_to_queue(smooth_t *t, int fd, const void *buf, size_t nbyte)
         if(diff_ms>1000) {
             t->incoming_byte_rate = t->incoming_bytes_1 * 1000 / diff_ms;
 
-            fprintf(stderr, "%s new incoming rate %ld/sec\n", MODULE, t->incoming_byte_rate);
+            dbg_print("new incoming rate %ld/sec\n", t->incoming_byte_rate);
             // reset timer and byte count
             t->incoming_bytes_1 = 0;
             t->incoming_t1 = t->incoming_t2;
@@ -170,8 +179,7 @@ static void push_to_queue(smooth_t *t, int fd, const void *buf, size_t nbyte)
 static void adjust_consumption_rate(smooth_t *t, long offset_bytes)
 {
     // TODO: also adjusts interval
-    fprintf(stderr, "%s old rate=%ld, offset=%ld\n", MODULE, 
-            t->write_byte_rate, offset_bytes);
+    dbg_print("old rate=%ld, offset=%ld\n", t->write_byte_rate, offset_bytes);
 
     long new_rate = (long)t->write_byte_rate +offset_bytes;
     if(new_rate>0) {
@@ -182,7 +190,7 @@ static void adjust_consumption_rate(smooth_t *t, long offset_bytes)
     }
     t->write_interval_ms = t->initial_interval_ms;
     t->write_chunk_bytes = t->write_byte_rate / (1000/t->write_interval_ms);    
-    fprintf(stderr, "%s new rate %ld, new chunk %ld\n", MODULE,
+    dbg_print("new rate %ld, new chunk %ld\n", 
             t->write_byte_rate, t->write_chunk_bytes);
 }
 
@@ -193,7 +201,7 @@ static void *buffer_thread_routine(void *data)
     struct timeval t1, t2;
     smooth_t *t = (smooth_t *)data;
 
-    fprintf(stderr, "%s buffer thread started\n", MODULE);
+    dbg_print("buffer thread started\n");
     gettimeofday(&t1, NULL);
 
     // write one chunk in every loop
@@ -215,7 +223,7 @@ static void *buffer_thread_routine(void *data)
             pthread_mutex_lock(&t->buffer_lock);
             node = t->queue_tail;
             if(NULL==node) {
-                //fprintf(stderr, "%s queue empty\n", MODULE);
+                //dbg_print("queue empty\n");
                 pthread_mutex_unlock(&t->buffer_lock);
                 smooth_usleep(10*1000); // no rush since queue will stay empty in short time
                 continue;
@@ -259,26 +267,26 @@ static void *buffer_thread_routine(void *data)
 
         // diff_ms >= 500
         long average_out_rate = out_bytes * 1000 / diff_ms;
-        fprintf(stderr, "%s  re-calculate out rate %ld/%ld=%ld\n", MODULE, out_bytes, diff_ms, average_out_rate);
+        dbg_print("re-calculate out rate %ld/%ld=%ld\n", out_bytes, diff_ms, average_out_rate);
 
         if(t->buffer_highest_level <= t->buffer_curr_level) {
             t->buffer_highest_level = t->buffer_curr_level;
         }
-        fprintf(stderr, "%s curr level %ld, highest level %ld\n", MODULE, t->buffer_curr_level, t->buffer_highest_level);
+        dbg_print("curr level %ld, highest level %ld\n", t->buffer_curr_level, t->buffer_highest_level);
 
         if(average_out_rate > t->incoming_byte_rate) {
             long adjustment = (long)t->incoming_byte_rate - average_out_rate ;
             adjustment /= 20;
 
-            fprintf(stderr, "%s too fast (%ld > %ld), slow down by %ld\n",
-                    MODULE, average_out_rate, t->incoming_byte_rate, adjustment);
+            dbg_print("too fast (%ld > %ld), slow down by %ld\n",
+                    average_out_rate, t->incoming_byte_rate, adjustment);
             adjust_consumption_rate(t, adjustment );
         }
         else if(average_out_rate < t->incoming_byte_rate) {
             long adjustment = (long)t->incoming_byte_rate - average_out_rate;
             adjustment /= 20;
-            fprintf(stderr, "%s too slow (%ld < %ld), speed up by %ld\n",
-                    MODULE, average_out_rate, t->incoming_byte_rate, adjustment);
+            dbg_print("too slow (%ld < %ld), speed up by %ld\n",
+                    average_out_rate, t->incoming_byte_rate, adjustment);
             adjust_consumption_rate(t, adjustment );
         }
         // reset stop watch
@@ -288,8 +296,7 @@ static void *buffer_thread_routine(void *data)
         //monitor buffer level and make more adjustments, to avoid too much buffer
         if(t->buffer_curr_level >= t->incoming_byte_rate/2) {
             long adjustment = (t->buffer_curr_level - (long)t->incoming_byte_rate/2 )/20;
-            fprintf(stderr, "%s buffer to high, speed up by %ld\n", 
-                    MODULE, adjustment);
+            dbg_print("buffer to high, speed up by %ld\n", adjustment);
             adjust_consumption_rate(t, adjustment );
         }
 
@@ -311,7 +318,7 @@ size_t smooth_write(smooth_t *t, int fd, const void *buf, size_t nbyte)
         push_to_queue(t, fd, buf, nbyte);
         t->buffer_state = e_Buffer_Priming;
 
-        fprintf(stderr, "%s init --> priming\n", MODULE);
+        dbg_print("init --> priming\n");
     }
     // State: priming
     else if(e_Buffer_Priming==t->buffer_state) {
@@ -325,7 +332,7 @@ size_t smooth_write(smooth_t *t, int fd, const void *buf, size_t nbyte)
         // State: priming --> normal
         if(diff_ms >= 700) {
             t->buffer_state = e_Buffer_Normal;
-            fprintf(stderr, "%s priming --> normal\n", MODULE);
+            dbg_print("priming --> normal\n");
 
             // determine consumption speed
             t->write_byte_rate = t->buffer_curr_level*1000/diff_ms;
@@ -333,15 +340,14 @@ size_t smooth_write(smooth_t *t, int fd, const void *buf, size_t nbyte)
             t->incoming_byte_rate = t->write_byte_rate;
             t->write_interval_ms = t->initial_interval_ms;
             t->write_chunk_bytes = t->write_byte_rate / (1000/t->write_interval_ms);    
-            fprintf(stderr, "%s write rate %ld, chunk size=%ld, current level=%ld, %ld\n",
-                    MODULE,
+            dbg_print("write rate %ld, chunk size=%ld, current level=%ld, %ld\n",
                     t->write_byte_rate, t->write_chunk_bytes,
                     t->buffer_curr_level, diff_ms);
 
             // create consumer thread
             int ret = pthread_create(&t->buffer_thread, NULL, buffer_thread_routine, t);
             if(ret<0) {
-                fprintf(stderr, "%s cannot create thread: %s\n", MODULE, strerror(errno));
+                dbg_print("cannot create thread: %s\n", strerror(errno));
                 assert(0);
             }
         }
@@ -376,7 +382,7 @@ smooth_t *smooth_write_init(void)
     long diff_ms = smooth_get_time_interval_in_ms(&t1, &t2);
     // this is due to system scheduling, so we typically sleep longer than 
     // requested.
-    fprintf(stderr, "%s adjust initial interval from %d to %ld\n", MODULE,
+    dbg_print("adjust initial interval from %d to %ld\n",
             t->initial_interval_ms, diff_ms);
     t->initial_interval_ms = diff_ms;
 
@@ -428,6 +434,9 @@ int main(int argc, char **argv)
         }
 #else
         wsz = smooth_write(t, 1, buf, sz);
+        if(wsz<0) {
+            exit(1);
+        }
 #endif
     } // end of while loop
 
