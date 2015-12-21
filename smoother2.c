@@ -190,7 +190,7 @@ static void adjust_consumption_rate(long offset_bytes)
 
 void *buffer_thread_routine(void *data)
 {
-    unsigned long last_rate_adjust_clock = 0; 
+//    unsigned long last_rate_adjust_clock = 0; 
     unsigned long total_bytes = 0;
     unsigned long out_bytes = 0;
     struct timeval t1, t2;

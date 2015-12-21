@@ -59,6 +59,7 @@ static struct buffer_node *g_queue_head=NULL, *g_queue_tail=NULL;
 
 // current buffer level (water level)
 static unsigned long g_buffer_curr_level = 0;
+static unsigned long g_buffer_highest_level = 0;
 // the constant consumption we try to achieve
 // g_write_byte_rate will directly affect g_write_interval_ms and g_write_chunk_bytes
 static unsigned long g_write_byte_rate = 0;
@@ -256,7 +257,11 @@ void *buffer_thread_routine(void *data)
         // diff_ms >= 500
         long average_out_rate = out_bytes * 1000 / diff_ms;
         fprintf(stderr, "%s  re-calculate out rate %ld/%ld=%ld\n", MODULE, out_bytes, diff_ms, average_out_rate);
-        fprintf(stderr, "%s curr level %ld\n", MODULE, g_buffer_curr_level);
+
+        if(g_buffer_highest_level <= g_buffer_curr_level) {
+            g_buffer_highest_level = g_buffer_curr_level;
+        }
+        fprintf(stderr, "%s curr level %ld, highest level %ld\n", MODULE, g_buffer_curr_level, g_buffer_highest_level);
 
         if(average_out_rate > g_incoming_byte_rate) {
             long adjustment = (long)g_incoming_byte_rate - average_out_rate ;

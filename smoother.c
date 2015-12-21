@@ -48,7 +48,7 @@ static struct buffer_node *g_queue_head=NULL, *g_queue_tail=NULL;
 // When buffer level is above g_buffer_max_level, do whatever we can to reduce 
 // to "what"(?) level.
 #define BUFFER_MAX (50*1024)
-static const unsigned long g_buffer_max_level = BUFFER_MAX; 
+//static const unsigned long g_buffer_max_level = BUFFER_MAX; 
 // Until buffer level reaches g_buffer_start_level, we do not write out
 // data, instead we do: 1. measure incoming rate. 2. push data into queue
 static unsigned long g_buffer_start_level = BUFFER_MAX/2;
