@@ -34,8 +34,9 @@ static unsigned long get_time_interval_in_ms(const struct timeval *pt1,
 int main(int argc, char **argv)
 {
     struct timeval t1, t2;
-    char buf[100*1024];
+    unsigned char buf[100*1024];
     FILE *logf = NULL;
+    unsigned char counter = 0;
 
     logf = fopen("generator.log", "w+");
     if(NULL==logf) {
@@ -49,6 +50,11 @@ int main(int argc, char **argv)
         unsigned long buf_size = rand() % sizeof(buf);
         int sleep_ms = 100; //rand() % 50;
         unsigned long diff_ms;
+        int i=0;
+
+        for(i=0; i<buf_size; ++i) {
+            buf[i] = counter++;
+        }
 
         write(1, buf, buf_size);
         usleep(sleep_ms*1000);

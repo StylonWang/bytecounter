@@ -173,6 +173,7 @@ int main(int argc, char **argv)
     FILE *logf = NULL;
     unsigned long total_size = 0;
     struct timeval t2, t_start;
+    int payload_counter = -1;
     //fd_set rfd;
 
     while(1) {
@@ -269,6 +270,34 @@ int main(int argc, char **argv)
         else {
             sizer = read(inf, buf, g_buffer_size);
         }
+
+        if(sizer<0) {
+            fprintf(stderr, "%s read error: %s\n", MODULE, strerror(errno));
+            break;
+        }
+        else if(sizer==0) {
+            continue;
+        }
+
+        // validate data integrity
+
+        int i;
+        if(-1==payload_counter) {
+            i = 1;
+            payload_counter = buf[0];
+        }
+        else {
+            i = 0;
+        }
+        for(i; i<sizer; ++i) {
+            if( ((payload_counter+1)&0xFF) != buf[i]) {
+                fprintf(stderr, "%s byte %ld error (%d/%d) \n", MODULE,
+                        total_size+i, payload_counter, buf[i]);
+                exit(1);
+            }
+            payload_counter = (payload_counter+1) & 0xFF;
+        }
+
         gettimeofday(&t2, NULL);
 
         unsigned long time_diff_from_start = get_time_interval_in_ms(&t_start, &t2);
