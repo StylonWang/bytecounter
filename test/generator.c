@@ -38,6 +38,8 @@ int main(int argc, char **argv)
     FILE *logf = NULL;
     unsigned char counter = 0;
 
+    srand(time(NULL));
+
     logf = fopen("generator.log", "w+");
     if(NULL==logf) {
         fprintf(stderr, "%s Cannot open log file\n", MODULE);
@@ -61,8 +63,7 @@ int main(int argc, char **argv)
 
         gettimeofday(&t2, NULL);
         diff_ms = get_time_interval_in_ms(&t1, &t2);
-        fprintf(logf, "%ld %ld\n", diff_ms, 
-                buf_size);
+        fprintf(logf, "%ld %d %ld\n", diff_ms, sleep_ms, buf_size);
         fflush(logf);
 
         //if(diff_ms >= 20*1000) break;
