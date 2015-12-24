@@ -33,7 +33,8 @@ struct sample {
 
 int main(int argc, char **argv)
 {
-    unsigned char buf[100*1024]; 
+    unsigned char *buf; //[100*1024]; 
+    unsigned long buf_size = 0;
 
     FILE *logf = NULL;
     unsigned char counter = 0;
@@ -61,10 +62,8 @@ int main(int argc, char **argv)
         fscanf(logf, "%ld %d %ld\n", &p->diff_ms, &p->sleep_ms, &p->buf_size);
         p->next = NULL;
 
-        if(p->buf_size > sizeof(buf)) {
-            dbg_print("log file has larger buffer %ld than we can have %ld\n",
-                    p->buf_size, sizeof(buf));
-            exit(1);
+        if(p->buf_size > buf_size) {
+            buf_size = p->buf_size;
         }
 
         dbg_print("%ld %d %ld\n", p->diff_ms, p->sleep_ms,
@@ -82,6 +81,12 @@ int main(int argc, char **argv)
 
     } while(!feof(logf));
     fclose(logf);
+
+    buf = malloc(buf_size);
+    if(!buf) {
+        dbg_print("cannot alloc buffer %ld bytes\n", buf_size);
+        exit(1);
+    }
 
     // write+sleep according to the sample list
     while(g_sample_list_head) {
