@@ -38,7 +38,7 @@ int main(int argc, char **argv)
     FILE *logf = NULL;
     unsigned char counter = 0;
 
-    srand(time(NULL));
+    srandom(time(NULL));
 
     logf = fopen("generator.log", "w+");
     if(NULL==logf) {
@@ -49,7 +49,7 @@ int main(int argc, char **argv)
     gettimeofday(&t1, NULL);
 
     while(1) {
-        unsigned long buf_size = rand() % sizeof(buf);
+        unsigned long buf_size = random() % sizeof(buf);
         int sleep_ms = 100; //rand() % 50;
         unsigned long diff_ms;
         int i=0;
